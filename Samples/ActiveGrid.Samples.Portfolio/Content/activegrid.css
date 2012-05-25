@@ -1,0 +1,81 @@
+﻿.activegrid-table {
+	border-spacing: 0px;
+}
+.activegrid-table th, .activegrid-table td
+{	
+}
+
+.activegrid-header-row 
+{
+    background-color: #999;
+}
+.activegrid-data-row-even 
+{
+    background-color: #ddd;
+}
+.activegrid-data-row-odd 
+{
+    background-color: #aaa;
+}
+.activegrid-header-cell 
+{
+    color: #000;
+    text-align: center;
+    font-weight: bold;
+    cursor: pointer;
+}
+.activegrid-data-cell 
+{
+    color: #000;
+}
+.activegrid-header-value 
+{
+}
+.activegrid-cell-value 
+{
+    padding: 2px;
+}
+.activegrid-pager-container
+{
+    background-color: #999;
+    color: #000;
+    font-weight: bold;
+}
+.activegrid-pager-pagenumber 
+{
+    margin: 2px;
+    padding: 2px;
+    float: left;
+    cursor: pointer;
+}
+.activegrid-pager-pagenumber.selected
+{
+    background-color: #ddd;
+    color: #000;
+}
+.activegrid-pager-label 
+{
+    margin: 3px;
+    float: left;	
+}
+.activegrid-pager-button 
+{
+    margin: 3px;
+    float: right;
+    cursor: pointer;
+}
+.clear 
+{
+	clear: both;
+}
+
+.arrow-up {
+	width: 0;
+	height: 0;
+	border-left: 5px solid transparent;
+	border-right: 5px solid transparent;
+
+	border-bottom: 5px solid black;
+	margin-top: 5px;
+	float: right;
+} 
