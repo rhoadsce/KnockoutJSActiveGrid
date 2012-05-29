@@ -19,9 +19,9 @@ $(function () {
             keyColumnNames: ['HoldingId'],
             hubName: 'holdings',
             clientCallbackName: 'broadcast',
-            pageSize: 10,
+            pageSize: 15,
             width: '500px',
-            paging: 'client',
+            paging: 'server',
             itemConstructor: function () {
                 var self = this;
                 self.HoldingId = ko.observable();

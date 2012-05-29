@@ -19,7 +19,7 @@ namespace SignalRGridColumnValue.API.Controllers
             GridResponse<Holding> result = new GridResponse<Holding>();
 
             result.data = Holdings.Data.AsQueryable();
-            result.totalPages = 0;
+            result.totalRows = 0;
             var totalRows = result.data.Count();
 
             string paging = this.Request.RequestUri.ParseQueryString()["paging"];
@@ -48,13 +48,7 @@ namespace SignalRGridColumnValue.API.Controllers
                     int.TryParse(this.Request.RequestUri.ParseQueryString()["pageSize"], out pageSize))
                 {
                     result.data = result.data.Skip(page * pageSize).Take(pageSize);
-                    if (pageSize > 0)
-                    {
-                        int totalPages = totalRows/pageSize;
-                        if (totalRows % pageSize != 0)
-                            totalPages++;
-                        result.totalPages = totalPages;
-                    }
+                    result.totalRows = totalRows;
                 }
             }
 
