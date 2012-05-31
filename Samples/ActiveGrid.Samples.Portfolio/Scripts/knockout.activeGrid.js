@@ -43,6 +43,18 @@
         self.currentPage = ko.observable(0);
         self.totalRows = ko.observable(0);
         self.pageSize = ko.observable(configuration.pageSize || 25);
+        self.currentPageSize = ko.computed({
+            read: function () {
+                return self.pageSize();
+            },
+            write: function (value) {
+                self.pauseDataLoad = true;
+                self.data.removeAll();
+                self.pauseDataLoad = false;
+                self.pageSize(value);
+            },
+            owner: self
+        });
         self.pageSizeOptions = ko.observableArray(configuration.pageSizeOptions || [5, 10, 25, 50]);
         self.width = configuration.width || '';
         self.hubName = configuration.hubName;
@@ -133,11 +145,11 @@
                     /*
                     The response must be in the following format:
                     {
-                        "TotalRows":totalRows
-                        "Data":[
-                            {"property1":"stringValue","property2":numbericValue,...},
-                            {"property1":"stringValue","property2":numbericValue,...}
-                        ]
+                    "TotalRows":totalRows
+                    "Data":[
+                    {"property1":"stringValue","property2":numbericValue,...},
+                    {"property1":"stringValue","property2":numbericValue,...}
+                    ]
                     }
                     */
                     var rows = response.data;
@@ -307,7 +319,7 @@
             if (startIndex >= self.data().length && currentPage === self.lastPage() && currentPage > 0) {
                 self.currentPage(currentPage - 1);
             }
-            
+
             if (self.paging === 'client') {
                 return self.data.slice(startIndex, endIndex);
             }
@@ -317,7 +329,7 @@
             if (self.paging === 'server' && $.inArray(self.currentPage(), self.visitedPages()) === -1) {
                 self.loadData();
             }
-            
+
             // Use the rowNumber property on each row to determine if it should be return based on the current page
             var result = [];
             for (var i = 0; i < self.data().length; i++) {
@@ -331,7 +343,7 @@
             return result;
         });
 
-        self.setCurrentPage = function(page) {
+        self.setCurrentPage = function (page) {
             if (page >= 0 && page < self.lastPage()) {
                 self.currentPage(page);
             }
@@ -422,7 +434,7 @@
                     </table>");
     templateEngine.addTemplate("ko_activeGrid_pageLinks", "\
                     <div class=\"activegrid-pager-container\">\
-                        <div class=\"activegrid-pager-label\">Page size: <select data-bind=\"options: pageSizeOptions, value: pageSize\"></select></div>\
+                        <div class=\"activegrid-pager-label\">Page size: <select data-bind=\"options: pageSizeOptions, value: currentPageSize\"></select></div>\
                         <div class=\"activegrid-pager-button\" data-bind=\"click: function() { setCurrentPage(lastPage() - 1) }\">Last</div>\
                         <div class=\"activegrid-pager-button\" data-bind=\"click: function() { setCurrentPage(currentPage() + 1) }\">Next</div>\
                         <div class=\"activegrid-pager-button\" data-bind=\"click: function() { setCurrentPage(currentPage() - 1) }\">Previous</div>\

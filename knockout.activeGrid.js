@@ -1,7 +1,4 @@
-﻿/// <reference path="_references.js" />
-
-
-// TODO: support date types
+﻿// TODO: fill in the holes in the support for dates.
 
 (function () {
     //Private constructor for column definitions
@@ -13,27 +10,66 @@
         self.hidden = columnDefinition.hidden || false;
         self.dataType = columnDefinition.dataType || '';
         self.precision = columnDefinition.precision || 2;
-        self.align = columnDefinition.align || 'left';
+        self.align = columnDefinition.align || '';
         self.sortDirection = columnDefinition.sortDirection || 'none';
-    }
+        self.datetimeFormat = columnDefinition.datetimeFormat || '';
+
+        if (self.align === '') {
+            if (self.dataType === 'numeric' || self.dataType === 'datetime') {
+                self.align = 'right';
+            } else {
+                self.align = 'left';
+            }
+        }
+    };
+
+    // TODO: finish this formatter
+    Date.prototype.toFormattedDateString = function (format) {
+        var day = this.getDate();
+        var month = this.getMonth() + 1;
+        var fourDigitYear = this.getFullYear();
+
+        format = format.replace('yyyy', fourDigitYear);
+        format = format.replace('mm', month);
+        format = format.replace('dd', day);
+
+        return format;
+    };
 
     ko.activeGrid = function (configuration) {
         var self = this;
 
         // Basic properties for the grid
         self.currentPage = ko.observable(0);
-        self.totalPages = ko.observable(0);
-        self.visitedPages = [];
-        self.pageSize = configuration.pageSize || 20;
+        self.totalRows = ko.observable(0);
+        self.pageSize = ko.observable(configuration.pageSize || 25);
+        self.currentPageSize = ko.computed({
+            read: function () {
+                return self.pageSize();
+            },
+            write: function (value) {
+                self.pauseDataLoad = true;
+                self.data.removeAll();
+                self.pauseDataLoad = false;
+                self.pageSize(value);
+            },
+            owner: self
+        });
+        self.pageSizeOptions = ko.observableArray(configuration.pageSizeOptions || [5, 10, 25, 50]);
         self.width = configuration.width || '';
         self.hubName = configuration.hubName;
         self.paging = configuration.paging || 'client'; // can be 'client' or 'server'
         self.pauseDataLoad = false;
+        // Ensure that the pageSize passed is in the list of pageSizeOptions. If it isn't, add it.
+        if ($.inArray(self.pageSize(), ko.utils.unwrapObservable(self.pageSizeOptions)) === -1) {
+            self.pageSizeOptions.push(self.pageSize());
+            self.pageSizeOptions.sort(function (left, right) { return left - right; });
+        }
 
         // Create the list of columns
         self.columns = [];
-        for (var i = 0; i < configuration.columns.length; i++) {
-            self.columns.push(new column(configuration.columns[i]));
+        for (var c = 0; c < configuration.columns.length; c++) {
+            self.columns.push(new column(configuration.columns[c]));
         }
         // List of property names considered "key" columns
         self.keyColumnNames = configuration.keyColumnNames || ['id'];
@@ -51,21 +87,21 @@
         self.sortColumn = function () {
             for (var i = 0; i < self.columns.length; i++) {
                 if (self.columns[i].sortDirection !== 'none') {
-                    return self.columns[i]
+                    return self.columns[i];
                 }
             }
             return null;
-        }
+        };
 
         // If an item constructor has not been passed in, create one with each property as an observable
         // Note: If an item constructor IS passed in, its properties MUST be either computed or observable
-        self.item = configuration.itemConstructor || function () {
+        self.Item = configuration.itemConstructor || function () {
             //loop over the column definitions to create a constructor
             for (var i = 0; i < self.columns.length; i++) {
                 this[self.columns[i].propertyName] = ko.observable();
             }
         };
-        self.row = function (row, item) {
+        self.Row = function (row, item) {
             this.rowNumber = row;
             this.item = item;
         };
@@ -83,8 +119,7 @@
             var baseUrl = self.dataUrl;
             if (baseUrl.indexOf('?') !== -1) {
                 baseUrl = baseUrl + '&';
-            }
-            else {
+            } else {
                 baseUrl = baseUrl + '?';
             }
 
@@ -93,14 +128,12 @@
 
                 if (sortColumn !== null) {
                     baseUrl = baseUrl + 'sortProperty=' + sortColumn.propertyName + '&sortDirection=' + sortColumn.sortDirection;
-                }
-                else {
+                } else {
                     baseUrl = baseUrl + 'sortProperty=&sortDirection=';
                 }
 
-                baseUrl = baseUrl + '&page=' + self.currentPage() + '&pageSize=' + self.pageSize + '&paging=server';
-            }
-            else {
+                baseUrl = baseUrl + '&page=' + self.currentPage() + '&pageSize=' + self.pageSize() + '&paging=server';
+            } else {
                 baseUrl = baseUrl + 'sortProperty=&sortDirection=&page=&pageSize=&paging=client';
             }
 
@@ -112,39 +145,46 @@
                     /*
                     The response must be in the following format:
                     {
-                        "TotalPages":totalPages
-                        "Data":[
-                            {"property1":"stringValue","property2":numbericValue,...},
-                            {"property1":"stringValue","property2":numbericValue,...}
-                        ]
+                    "TotalRows":totalRows
+                    "Data":[
+                    {"property1":"stringValue","property2":numbericValue,...},
+                    {"property1":"stringValue","property2":numbericValue,...}
+                    ]
                     }
                     */
                     var rows = response.data;
-                    var startIndex = self.currentPage() * self.pageSize;
-                    for (var i = 0; i < rows.length; i++) {
-                        var item = new self.item();
-                        for (var j = 0; j < self.columns.length; j++) {
+                    var startIndex = self.currentPage() * self.pageSize();
+                    var i, j;
+                    for (i = 0; i < rows.length; i++) {
+                        var item = new self.Item();
+                        for (j = 0; j < self.columns.length; j++) {
                             if (!self.columns[j].isComputed) {
-                                item[self.columns[j].propertyName](rows[i][self.columns[j].propertyName]);
+                                if (self.columns[j].dataType === 'datetime') {
+                                    var rowValue = rows[i][self.columns[j].propertyName];
+                                    var datetime = new Date(parseInt(rowValue.substr(6)));
+                                    item[self.columns[j].propertyName](datetime.toFormattedDateString('mm/dd/yyyy'));
+                                } else {
+                                    item[self.columns[j].propertyName](rows[i][self.columns[j].propertyName]);
+                                }
                             }
                         }
                         // Create a new row, passing in a row number and the item
-                        var row = new self.row(startIndex + i, item);
+                        var row = new self.Row(startIndex + i, item);
                         // Add the new row to the data
                         self.data.push(row);
                     }
                     self.data.sort(function (left, right) {
                         return left.rowNumber - right.rowNumber;
                     });
-                    self.totalPages(response.totalPages);
+                    self.totalRows(response.totalRows);
 
                     // determine data types of columns, if they weren't supplied
-                    for (var i = 0; i < self.columns.length; i++) {
+                    for (i = 0; i < self.columns.length; i++) {
                         if (self.columns[i].dataType !== '') {
                             continue;
                         }
                         var type = 'numeric';
-                        for (var j = 0; j < self.data().length; j++) {
+                        for (j = 0; j < self.data().length; j++) {
                             if (isNaN(self.data()[j].item[self.columns[i].propertyName]())) {
                                 type = 'string';
                                 break;
@@ -155,20 +195,21 @@
                 }
             });
 
-        }
+        };
 
         // Sort the data in the grid
-        self.sort = function (propertyName, data, event) {
-            var column = {};
+        self.sort = function (propertyName/*, data, event*/) {
+            var sortColumn = {};
             // Get the selected column and it's current sort direction
-            for (var i = 0; i < self.columns.length; i++) {
+            var i;
+            for (i = 0; i < self.columns.length; i++) {
                 if (self.columns[i].propertyName === propertyName) {
-                    column = self.columns[i];
+                    sortColumn = self.columns[i];
                     break;
                 }
             }
 
-            var currentSortDirection = column.sortDirection;
+            var currentSortDirection = sortColumn.sortDirection;
 
             if (self.paging === 'client') {
                 // *** Client side paging ***
@@ -181,8 +222,16 @@
 
                     if (currentSortDirection === 'none' || currentSortDirection === 'desc') {
                         // Currently not sorted or currently sorted ascending
-                        if (column.dataType === 'numeric') {
+                        if (sortColumn.dataType === 'numeric') {
                             return left.item[propertyName]() - right.item[propertyName]();
+                        }
+                        else if (sortColumn.dataType === 'datetime') {
+                            if (new Date(left.item[propertyName]()) < new Date(right.item[propertyName]())) {
+                                return -1;
+                            }
+                            else {
+                                return 1;
+                            }
                         }
                         else {
                             if (left.item[propertyName]() < right.item[propertyName]()) {
@@ -195,8 +244,16 @@
                     }
                     else {
                         // Currently sorted descending
-                        if (column.dataType === 'numeric') {
+                        if (sortColumn.dataType === 'numeric') {
                             return right.item[propertyName]() - left.item[propertyName]();
+                        }
+                        else if (sortColumn.dataType === 'datetime') {
+                            if (new Date(left.item[propertyName]()) > new Date(right.item[propertyName]())) {
+                                return -1;
+                            }
+                            else {
+                                return 1;
+                            }
                         }
                         else {
                             if (left.item[propertyName]() > right.item[propertyName]()) {
@@ -209,9 +266,9 @@
                     }
                 });
                 // Set the column list to reflect the current sort for the grid
-                column.sortDirection = (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
-                for (var i = 0; i < self.columns.length; i++) {
-                    if (self.columns[i] !== column) {
+                sortColumn.sortDirection = (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
+                for (i = 0; i < self.columns.length; i++) {
+                    if (self.columns[i] !== sortColumn) {
                         self.columns[i].sortDirection = 'none';
                     }
                 }
@@ -221,14 +278,13 @@
                 // If the user changed the sort column, invalidate the visited pages and the data for the current page then get refresh data
                 self.pauseDataLoad = true;
 
-                self.visitedPages = [];
                 self.data.removeAll();
 
                 self.pauseDataLoad = false;
                 // Set the column list to reflect the current sort for the grid
-                column.sortDirection = (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
-                for (var i = 0; i < self.columns.length; i++) {
-                    if (self.columns[i] !== column) {
+                sortColumn.sortDirection = (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
+                for (i = 0; i < self.columns.length; i++) {
+                    if (self.columns[i] !== sortColumn) {
                         self.columns[i].sortDirection = 'none';
                     }
                 }
@@ -237,22 +293,51 @@
             }
         };
 
-        // Get a list of items on the current page.
-        self.itemsOnCurrentPage = ko.computed(function () {
-            // If the grid is paged server side, may need to load more data for the new page.
-            // Maintain a list of visited pages so we don't load data for an already visited page.
-            if (self.paging === 'server' && $.inArray(self.currentPage(), self.visitedPages) === -1) {
-                self.loadData();
-                self.visitedPages.push(self.currentPage());
+        // Last page number
+        self.lastPage = function () {
+            if (self.paging === 'server') {
+                return Math.ceil(self.totalRows() / self.pageSize());
             }
-            var startIndex = self.pageSize * self.currentPage(),
-                lastIndex = startIndex + self.pageSize;
-
-            // Use the rowNumber property on each row to determin if it should be return based on the current page
+            return Math.ceil(self.data().length / self.pageSize());
+        };
+        self.visitedPages = ko.computed(function () {
             var result = [];
             for (var i = 0; i < self.data().length; i++) {
-                if (self.data()[i].rowNumber >= startIndex && self.data()[i].rowNumber < lastIndex) {
+                var page = Math.floor(self.data()[i].rowNumber / self.pageSize());
+                if ($.inArray(page, result) === -1) {
+                    result.push(page);
+                }
+            }
+            return result;
+        });
+        // Get a list of items on the current page.
+        self.itemsOnCurrentPage = ko.computed(function () {
+            var startIndex = self.pageSize() * self.currentPage();
+            var endIndex = startIndex + self.pageSize();
+            var currentPage = self.currentPage();
+
+            if (startIndex >= self.data().length && currentPage === self.lastPage() && currentPage > 0) {
+                self.currentPage(currentPage - 1);
+            }
+
+            if (self.paging === 'client') {
+                return self.data.slice(startIndex, endIndex);
+            }
+
+            // If the grid is paged server side, may need to load more data for the new page.
+            // Maintain a list of visited pages so we don't load data for an already visited page.
+            if (self.paging === 'server' && $.inArray(self.currentPage(), self.visitedPages()) === -1) {
+                self.loadData();
+            }
+
+            // Use the rowNumber property on each row to determine if it should be return based on the current page
+            var result = [];
+            for (var i = 0; i < self.data().length; i++) {
+                if (self.data()[i].rowNumber >= startIndex && self.data()[i].rowNumber < endIndex) {
                     result.push(self.data()[i]);
+                }
+                else if (i >= endIndex) {
+                    break;
                 }
             }
             return result;
@@ -262,14 +347,7 @@
             if (page >= 0 && page < self.lastPage()) {
                 self.currentPage(page);
             }
-        }
-        // Last page number
-        self.lastPage = ko.computed(function () {
-            if (self.paging === 'server') {
-                return self.totalPages();
-            }
-            return Math.ceil(ko.utils.unwrapObservable(self.data).length / self.pageSize);
-        });
+        };
 
         //Function to match and return a row (observable) in the list (observable) given a row (not observable) of data
         self.getRowFromList = configuration.getRowFromList || function (list, row) {
@@ -298,14 +376,15 @@
         //Handler to determine if a row needs updated and then applying those updates
         self.rowUpdateHandler = configuration.rowUpdateHandler || function (row, updates) {
             var isMatch = true;
-            for (var property in updates.match) {
+            var property;
+            for (property in updates.match) {
                 if (row[property]() != updates.match[property]) {
                     isMatch = false;
                     break;
                 }
             }
             if (isMatch) {
-                for (var property in updates.update) {
+                for (property in updates.update) {
                     row[property](updates.update[property]);
                 }
             }
@@ -355,12 +434,7 @@
                     </table>");
     templateEngine.addTemplate("ko_activeGrid_pageLinks", "\
                     <div class=\"activegrid-pager-container\">\
-                        <div class=\"activegrid-pager-label\">Page:</div>\
-                        {{each(i) ko.utils.range(1, lastPage)}}\
-                            <div class=\"activegrid-pager-pagenumber\" data-bind=\"click: function() { setCurrentPage(i) }, css: { selected: i == currentPage() }\">\
-                                ${ i + 1 }\
-                            </div>\
-                        {{/each}}\
+                        <div class=\"activegrid-pager-label\">Page size: <select data-bind=\"options: pageSizeOptions, value: currentPageSize\"></select></div>\
                         <div class=\"activegrid-pager-button\" data-bind=\"click: function() { setCurrentPage(lastPage() - 1) }\">Last</div>\
                         <div class=\"activegrid-pager-button\" data-bind=\"click: function() { setCurrentPage(currentPage() + 1) }\">Next</div>\
                         <div class=\"activegrid-pager-button\" data-bind=\"click: function() { setCurrentPage(currentPage() - 1) }\">Previous</div>\
@@ -370,9 +444,8 @@
 
     // Create the "activeGrid" knockout binding
     ko.bindingHandlers.activeGrid = {
-        update: function (element, valueAccessor, allBindingsAccessor) {
-            var viewModel = valueAccessor()
-            var allBindings = allBindingsAccessor();
+        update: function (element, valueAccessor/*, allBindingsAccessor*/) {
+            var viewModel = valueAccessor();
 
             // Clear everything in the container
             while (element.firstChild) {
