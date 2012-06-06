@@ -7,6 +7,8 @@ using System.Net;
 using System.Xml.Linq;
 using System.Threading;
 using SignalR.Client.Hubs;
+using ActiveGrid.Client;
+using ActiveGrid.Models;
 
 namespace ActiveGrid.Samples.Portfolio.PricingService
 {
@@ -16,27 +18,8 @@ namespace ActiveGrid.Samples.Portfolio.PricingService
 
         static void Main(string[] args)
         {
-            var connection = new HubConnection("http://localhost:5432/");
-            var hub = connection.CreateProxy("holdings");
-
-            hub.On("receive", data =>
-            {
-                var match = data.match;
-            });
-
-            connection.Start().ContinueWith(task =>
-            {
-                if (task.IsFaulted)
-                {
-                    Console.WriteLine("Failed to start: {0}", task.Exception.GetBaseException());
-                }
-                else
-                {
-                    Console.WriteLine("Success! Connected with client connection id {0}", connection.ConnectionId);
-                    // Do more stuff here
-                }
-            }).Wait();
-
+            ActiveGridConnection connection = new ActiveGridConnection("http://localhost:5432/");
+            
             bool cont = true;
 
             Task lookupPrices = Task.Factory.StartNew(() =>
@@ -54,18 +37,11 @@ namespace ActiveGrid.Samples.Portfolio.PricingService
                             XDocument xdoc = XDocument.Parse(response);
                             XElement last = xdoc.Element("xml_api_reply").Element("finance").Element("last");
                             decimal price = decimal.Parse(last.Attribute("data").Value);
-                            var updates = new { match = new { Ticker = ticker }, update = new { Price = price } };
-                            hub.Invoke("UpdatePrice", updates).ContinueWith(task =>
-                            {
-                                if (task.IsFaulted)
-                                {
-                                    Console.WriteLine("There was an error calling updatePrice for {0}: {1}", ticker, task.Exception.GetBaseException());
-                                }
-                                else
-                                {
-                                    Console.WriteLine("Price found for {0}: {1}", ticker, price.ToString());
-                                }
-                            });
+                            var updates = new GridUpdates();
+                            updates.action = GridActionType.update;
+                            updates.match = new { Ticker = ticker };
+                            updates.item = new { Price = price };
+                            connection.UpdateGrid(updates);
                         }, t);
                     }
                     Thread.Sleep(15000);

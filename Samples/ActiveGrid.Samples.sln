@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActiveGrid.Samples.Portfoli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActiveGrid.Samples.Portfolio.PricingService", "ActiveGrid.Samples.Portfolio.PricingService\ActiveGrid.Samples.Portfolio.PricingService.csproj", "{706BB349-66EC-4A59-A625-492F84DE1A03}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActiveGrid", "..\ActiveGrid\ActiveGrid.csproj", "{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,16 @@ Global
 		{706BB349-66EC-4A59-A625-492F84DE1A03}.Release|Mixed Platforms.Build.0 = Release|x86
 		{706BB349-66EC-4A59-A625-492F84DE1A03}.Release|x86.ActiveCfg = Release|x86
 		{706BB349-66EC-4A59-A625-492F84DE1A03}.Release|x86.Build.0 = Release|x86
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

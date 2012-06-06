@@ -48,16 +48,18 @@
                 return self.pageSize();
             },
             write: function (value) {
-                self.pauseDataLoad = true;
-                self.data.removeAll();
-                self.pauseDataLoad = false;
+                if (self.paging === 'server') {
+                    self.pauseDataLoad = true;
+                    self.data.removeAll();
+                    self.pauseDataLoad = false;
+                }
                 self.pageSize(value);
             },
             owner: self
         });
         self.pageSizeOptions = ko.observableArray(configuration.pageSizeOptions || [5, 10, 25, 50]);
         self.width = configuration.width || '';
-        self.hubName = configuration.hubName;
+        self.hubName = configuration.hubName || 'activeGridHub';
         self.paging = configuration.paging || 'client'; // can be 'client' or 'server'
         self.pauseDataLoad = false;
         // Ensure that the pageSize passed is in the list of pageSizeOptions. If it isn't, add it.
@@ -100,6 +102,21 @@
             for (var i = 0; i < self.columns.length; i++) {
                 this[self.columns[i].propertyName] = ko.observable();
             }
+        };
+        self.PopulateItem = function (data) {
+            var item = new self.Item();
+            for (var j = 0; j < self.columns.length; j++) {
+                if (!self.columns[j].isComputed) {
+                    if (self.columns[j].dataType === 'datetime') {
+                        var rowValue = data[self.columns[j].propertyName];
+                        var datetime = new Date(parseInt(rowValue.substr(6)));
+                        item[self.columns[j].propertyName](datetime.toFormattedDateString('mm/dd/yyyy'));
+                    } else {
+                        item[self.columns[j].propertyName](data[self.columns[j].propertyName]);
+                    }
+                }
+            }
+            return item;
         };
         self.Row = function (row, item) {
             this.rowNumber = row;
@@ -156,18 +173,7 @@
                     var startIndex = self.currentPage() * self.pageSize();
                     var i, j;
                     for (i = 0; i < rows.length; i++) {
-                        var item = new self.Item();
-                        for (j = 0; j < self.columns.length; j++) {
-                            if (!self.columns[j].isComputed) {
-                                if (self.columns[j].dataType === 'datetime') {
-                                    var rowValue = rows[i][self.columns[j].propertyName];
-                                    var datetime = new Date(parseInt(rowValue.substr(6)));
-                                    item[self.columns[j].propertyName](datetime.toFormattedDateString('mm/dd/yyyy'));
-                                } else {
-                                    item[self.columns[j].propertyName](rows[i][self.columns[j].propertyName]);
-                                }
-                            }
-                        }
+                        var item = self.PopulateItem(rows[i]);
                         // Create a new row, passing in a row number and the item
                         var row = new self.Row(startIndex + i, item);
                         // Add the new row to the data
@@ -197,6 +203,57 @@
 
         };
 
+        var clientSideSort = function (propertyName, sortColumn, currentSortDirection) {
+            self.data.sort(function (left, right) {
+                if (left.item[propertyName]() === right.item[propertyName]()) {
+                    return 0;
+                }
+
+                if (currentSortDirection === 'none' || currentSortDirection === 'desc') {
+                    // Currently not sorted or currently sorted ascending
+                    if (sortColumn.dataType === 'numeric') {
+                        return left.item[propertyName]() - right.item[propertyName]();
+                    } else if (sortColumn.dataType === 'datetime') {
+                        if (new Date(left.item[propertyName]()) < new Date(right.item[propertyName]())) {
+                            return -1;
+                        } else {
+                            return 1;
+                        }
+                    } else {
+                        if (left.item[propertyName]() < right.item[propertyName]()) {
+                            return -1;
+                        } else {
+                            return 1;
+                        }
+                    }
+                } else {
+                    // Currently sorted descending
+                    if (sortColumn.dataType === 'numeric') {
+                        return right.item[propertyName]() - left.item[propertyName]();
+                    } else if (sortColumn.dataType === 'datetime') {
+                        if (new Date(left.item[propertyName]()) > new Date(right.item[propertyName]())) {
+                            return -1;
+                        } else {
+                            return 1;
+                        }
+                    } else {
+                        if (left.item[propertyName]() > right.item[propertyName]()) {
+                            return -1;
+                        } else {
+                            return 1;
+                        }
+                    }
+                }
+            });
+            // Set the column list to reflect the current sort for the grid
+            sortColumn.sortDirection = (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
+            for (var i = 0; i < self.columns.length; i++) {
+                if (self.columns[i] !== sortColumn) {
+                    self.columns[i].sortDirection = 'none';
+                }
+            }
+        };
+
         // Sort the data in the grid
         self.sort = function (propertyName/*, data, event*/) {
             var sortColumn = {};
@@ -212,69 +269,12 @@
             var currentSortDirection = sortColumn.sortDirection;
 
             if (self.paging === 'client') {
-                // *** Client side paging ***
+                // *** Client side paging ***//
                 // Do the sorting locally
-
-                self.data.sort(function (left, right) {
-                    if (left.item[propertyName]() === right.item[propertyName]()) {
-                        return 0;
-                    }
-
-                    if (currentSortDirection === 'none' || currentSortDirection === 'desc') {
-                        // Currently not sorted or currently sorted ascending
-                        if (sortColumn.dataType === 'numeric') {
-                            return left.item[propertyName]() - right.item[propertyName]();
-                        }
-                        else if (sortColumn.dataType === 'datetime') {
-                            if (new Date(left.item[propertyName]()) < new Date(right.item[propertyName]())) {
-                                return -1;
-                            }
-                            else {
-                                return 1;
-                            }
-                        }
-                        else {
-                            if (left.item[propertyName]() < right.item[propertyName]()) {
-                                return -1;
-                            }
-                            else {
-                                return 1;
-                            }
-                        }
-                    }
-                    else {
-                        // Currently sorted descending
-                        if (sortColumn.dataType === 'numeric') {
-                            return right.item[propertyName]() - left.item[propertyName]();
-                        }
-                        else if (sortColumn.dataType === 'datetime') {
-                            if (new Date(left.item[propertyName]()) > new Date(right.item[propertyName]())) {
-                                return -1;
-                            }
-                            else {
-                                return 1;
-                            }
-                        }
-                        else {
-                            if (left.item[propertyName]() > right.item[propertyName]()) {
-                                return -1;
-                            }
-                            else {
-                                return 1;
-                            }
-                        }
-                    }
-                });
-                // Set the column list to reflect the current sort for the grid
-                sortColumn.sortDirection = (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
-                for (i = 0; i < self.columns.length; i++) {
-                    if (self.columns[i] !== sortColumn) {
-                        self.columns[i].sortDirection = 'none';
-                    }
-                }
+                clientSideSort(propertyName, sortColumn, currentSortDirection);
             }
             else {
-                //*** Server side paging ***
+                //*** Server side paging ***//
                 // If the user changed the sort column, invalidate the visited pages and the data for the current page then get refresh data
                 self.pauseDataLoad = true;
 
@@ -295,7 +295,10 @@
 
         // Last page number
         self.lastPage = function () {
-            if (self.paging === 'server') {
+            if (self.pageSize() === 0) {
+                return 0;
+            }
+            if (self.totalRows() > self.data().length) {
                 return Math.ceil(self.totalRows() / self.pageSize());
             }
             return Math.ceil(self.data().length / self.pageSize());
@@ -373,6 +376,12 @@
         //Name of the client side function called by the hub
         self.clientCallbackName = configuration.clientCallbackName || 'receive';
 
+        self.rowCreateHandler = configuration.rowCreateHandler || function (updates) {
+            var item = self.PopulateItem(updates.item);
+            var row = new self.Row(self.data().length, item);
+            self.data.push(row);
+        };
+
         //Handler to determine if a row needs updated and then applying those updates
         self.rowUpdateHandler = configuration.rowUpdateHandler || function (row, updates) {
             var isMatch = true;
@@ -384,15 +393,27 @@
                 }
             }
             if (isMatch) {
-                for (property in updates.update) {
-                    row[property](updates.update[property]);
+                for (property in updates.item) {
+                    row[property](updates.item[property]);
                 }
             }
         };
 
+        //Allow the client to name use whatever function name they'd like
         self.connection[self.clientCallbackName] = (function (updates) {
-            for (var i = 0; i < self.data().length; i++) {
-                self.rowUpdateHandler(self.data()[i].item, updates);
+            /*
+                updates.action values correspond to the GridActionType enum
+                create = 0
+                delete = 1
+                update = 2
+            */
+            if (updates.action === 0) {
+                self.rowCreateHandler(updates);
+            }
+            else if (updates.action === 2) {
+                for (var i = 0; i < self.data().length; i++) {
+                    self.rowUpdateHandler(self.data()[i].item, updates);
+                }
             }
         });
 

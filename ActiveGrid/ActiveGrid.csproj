@@ -2,20 +2,18 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{706BB349-66EC-4A59-A625-492F84DE1A03}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ActiveGrid.Samples.PricingService</RootNamespace>
-    <AssemblyName>ActiveGrid.Samples.PricingService</AssemblyName>
+    <RootNamespace>ActiveGrid</RootNamespace>
+    <AssemblyName>ActiveGrid</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <PlatformTarget>x86</PlatformTarget>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -24,8 +22,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
-    <PlatformTarget>x86</PlatformTarget>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -34,11 +31,24 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\Samples\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.4.5.5\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\Samples\packages\Newtonsoft.Json.4.5.6\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="SignalR">
+      <HintPath>..\Samples\packages\SignalR.Server.0.5.0\lib\net40\SignalR.dll</HintPath>
     </Reference>
     <Reference Include="SignalR.Client">
-      <HintPath>..\packages\SignalR.Client.0.5.0\lib\net40\SignalR.Client.dll</HintPath>
+      <HintPath>..\Samples\packages\SignalR.Client.0.5.0\lib\net40\SignalR.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="SignalR.Hosting.AspNet">
+      <HintPath>..\Samples\packages\SignalR.Hosting.AspNet.0.5.0\lib\net40\SignalR.Hosting.AspNet.dll</HintPath>
+    </Reference>
+    <Reference Include="SignalR.Hosting.Common">
+      <HintPath>..\Samples\packages\SignalR.Hosting.Common.0.5.0\lib\net40\SignalR.Hosting.Common.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -49,18 +59,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="Client\ActiveGridConnection.cs" />
+    <Compile Include="Exceptions\GridConnectionException.cs" />
+    <Compile Include="Exceptions\GridUpdateException.cs" />
+    <Compile Include="Models\GridActionType.cs" />
+    <Compile Include="Models\GridData.cs" />
+    <Compile Include="Models\GridUpdates.cs" />
+    <Compile Include="Server\ActiveGridHub.cs" />
+    <Compile Include="Helpers\ActiveGrid.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\ActiveGrid\ActiveGrid.csproj">
-      <Project>{3AB69CA0-C4A4-4E60-8B57-AF08D41382F2}</Project>
-      <Name>ActiveGrid</Name>
-    </ProjectReference>
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

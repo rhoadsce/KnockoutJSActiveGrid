@@ -38,7 +38,7 @@ namespace ActiveGrid.Samples.Portfolio
         }
 
         protected void Application_Start()
-        {
+        {            
             AreaRegistration.RegisterAllAreas();
 
             RegisterGlobalFilters(GlobalFilters.Filters);

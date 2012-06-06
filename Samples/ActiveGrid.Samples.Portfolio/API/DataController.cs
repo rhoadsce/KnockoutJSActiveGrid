@@ -3,20 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Web.Http;
-using SignalRGridColumnValue.Models;
 using System.Reflection;
 using System.Linq.Expressions;
 using SignalRGridColumnValue.Extensions;
 using System.Web.Script.Serialization;
+using ActiveGrid.Models;
+using SignalRGridColumnValue.Models;
+using ActiveGrid.Client;
 
 namespace SignalRGridColumnValue.API.Controllers
 {
     public class DataController : ApiController
     {
         // GET /api/<controller>
-        public GridResponse<Holding> Get()
+        public GridData<Holding> Get()
         {
-            GridResponse<Holding> result = new GridResponse<Holding>();
+            GridData<Holding> result = new GridData<Holding>();
 
             result.data = Holdings.Data.AsQueryable();
             result.totalRows = 0;
@@ -53,6 +55,22 @@ namespace SignalRGridColumnValue.API.Controllers
             }
 
             return result;
+        }
+
+        // POST /api/<controller>
+        public void Post(Holding holding)
+        {
+            holding.HoldingId = Holdings.Data.Max(h => h.HoldingId);
+            Holdings.Data.Add(holding);
+
+            GridUpdates updates = new GridUpdates();
+            updates.action = GridActionType.create;
+            updates.match = "";
+            updates.item = holding;
+
+            string url = string.Format("{0}://{1}:{2}", this.Request.RequestUri.Scheme, this.Request.RequestUri.Host, this.Request.RequestUri.Port);
+            ActiveGridConnection connection = new ActiveGridConnection(url);
+            connection.UpdateGrid(updates);
         }
     }
 }
