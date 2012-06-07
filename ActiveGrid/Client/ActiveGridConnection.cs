@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using SignalR.Client.Hubs;
+﻿using ActiveGrid.Exceptions;
 using ActiveGrid.Models;
-using ActiveGrid.Exceptions;
+using SignalR.Client.Hubs;
 
 namespace ActiveGrid.Client
 {

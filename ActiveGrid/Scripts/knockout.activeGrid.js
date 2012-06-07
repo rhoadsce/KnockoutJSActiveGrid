@@ -203,70 +203,54 @@
 
         };
 
-        var reverseSortDirection = function (currentSortDirection) {
-            return (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
-        };
-
-        var applyClientSideSort = function () {
-            var sortColumn = null;
-            for (var i = 0; i < self.columns.length; i++) {
-                if (self.columns[i].sortDirection !== 'none') {
-                    sortColumn = self.columns[i];
-                    break;
-                }
-            }
-
-            clientSideSort(sortColumn, reverseSortDirection(sortColumn.sortDirection));
-        };
-
-        var clientSideSort = function (sortColumn, currentSortDirection) {
+        var clientSideSort = function (propertyName, sortColumn, currentSortDirection) {
             self.data.sort(function (left, right) {
-                if (left.item[sortColumn.propertyName]() === right.item[sortColumn.propertyName]()) {
+                if (left.item[propertyName]() === right.item[propertyName]()) {
                     return 0;
                 }
 
-                var result = 0;
                 if (currentSortDirection === 'none' || currentSortDirection === 'desc') {
                     // Currently not sorted or currently sorted ascending
                     if (sortColumn.dataType === 'numeric') {
-                        result = left.item[sortColumn.propertyName]() - right.item[sortColumn.propertyName]();
+                        return left.item[propertyName]() - right.item[propertyName]();
                     } else if (sortColumn.dataType === 'datetime') {
-                        if (new Date(left.item[sortColumn.propertyName]()) < new Date(right.item[sortColumn.propertyName]())) {
-                            result = -1;
+                        if (new Date(left.item[propertyName]()) < new Date(right.item[propertyName]())) {
+                            return -1;
                         } else {
-                            result = 1;
+                            return 1;
                         }
                     } else {
-                        if (left.item[sortColumn.propertyName]() < right.item[sortColumn.propertyName]()) {
-                            result = -1;
+                        if (left.item[propertyName]() < right.item[propertyName]()) {
+                            return -1;
                         } else {
-                            result = 1;
+                            return 1;
                         }
                     }
                 } else {
                     // Currently sorted descending
                     if (sortColumn.dataType === 'numeric') {
-                        result = right.item[sortColumn.propertyName]() - left.item[sortColumn.propertyName]();
+                        return right.item[propertyName]() - left.item[propertyName]();
                     } else if (sortColumn.dataType === 'datetime') {
-                        if (new Date(left.item[sortColumn.propertyName]()) > new Date(right.item[sortColumn.propertyName]())) {
-                            result = -1;
+                        if (new Date(left.item[propertyName]()) > new Date(right.item[propertyName]())) {
+                            return -1;
                         } else {
-                            result = 1;
+                            return 1;
                         }
                     } else {
-                        if (left.item[sortColumn.propertyName]() > right.item[sortColumn.propertyName]()) {
-                            result = -1;
+                        if (left.item[propertyName]() > right.item[propertyName]()) {
+                            return -1;
                         } else {
-                            result = 1;
+                            return 1;
                         }
                     }
                 }
-
-                return result;
             });
-            // Assign corrected rowNumber values
-            for (var i = 0; i < self.data().length; i++) {
-                self.data()[i].rowNumber = i;
+            // Set the column list to reflect the current sort for the grid
+            sortColumn.sortDirection = (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
+            for (var i = 0; i < self.columns.length; i++) {
+                if (self.columns[i] !== sortColumn) {
+                    self.columns[i].sortDirection = 'none';
+                }
             }
         };
 
@@ -287,15 +271,7 @@
             if (self.paging === 'client') {
                 // *** Client side paging ***//
                 // Do the sorting locally
-                clientSideSort(sortColumn, currentSortDirection);
-
-                // Set the column list to reflect the current sort for the grid
-                sortColumn.sortDirection = reverseSortDirection(currentSortDirection);
-                for (var i = 0; i < self.columns.length; i++) {
-                    if (self.columns[i] !== sortColumn) {
-                        self.columns[i].sortDirection = 'none';
-                    }
-                }
+                clientSideSort(propertyName, sortColumn, currentSortDirection);
             }
             else {
                 //*** Server side paging ***//
@@ -306,7 +282,7 @@
 
                 self.pauseDataLoad = false;
                 // Set the column list to reflect the current sort for the grid
-                sortColumn.sortDirection = reverseSortDirection(currentSortDirection);
+                sortColumn.sortDirection = (currentSortDirection === 'desc' || currentSortDirection === 'none') ? 'asc' : 'desc';
                 for (i = 0; i < self.columns.length; i++) {
                     if (self.columns[i] !== sortColumn) {
                         self.columns[i].sortDirection = 'none';
@@ -426,14 +402,13 @@
         //Allow the client to name use whatever function name they'd like
         self.connection[self.clientCallbackName] = (function (updates) {
             /*
-            updates.action values correspond to the GridActionType enum
-            create = 0
-            delete = 1
-            update = 2
+                updates.action values correspond to the GridActionType enum
+                create = 0
+                delete = 1
+                update = 2
             */
             if (updates.action === 0) {
                 self.rowCreateHandler(updates);
-                applyClientSideSort();
             }
             else if (updates.action === 2) {
                 for (var i = 0; i < self.data().length; i++) {
