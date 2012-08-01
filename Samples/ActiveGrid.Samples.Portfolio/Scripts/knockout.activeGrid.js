@@ -1,4 +1,6 @@
-﻿// TODO: fill in the holes in the support for dates.
+﻿/// <reference path="_references.js" />
+
+// TODO: fill in the holes in the support for dates.
 
 (function () {
     //Private constructor for column definitions
@@ -21,6 +23,12 @@
                 self.align = 'left';
             }
         }
+    };
+    var action = function (actionDefinition) {
+        var self = this;
+        self.headerCaption = actionDefinition.headerCaption || "";
+        self.actionName = actionDefinition.actionName || "";
+        self.urlFormat = actionDefinition.urlFormat || "";
     };
 
     // TODO: finish this formatter
@@ -70,9 +78,17 @@
 
         // Create the list of columns
         self.columns = [];
-        for (var c = 0; c < configuration.columns.length; c++) {
+        var columnCount = configuration.columns !== undefined ? configuration.columns.length : 0;
+        for (var c = 0; c < columnCount; c++) {
             self.columns.push(new column(configuration.columns[c]));
         }
+        // Create the list of actions
+        self.actions = [];
+        var actionCount = configuration.actions !== undefined ? configuration.actions.length : 0;
+        for (var a = 0; a < actionCount; a++) {
+            self.actions.push(new action(configuration.actions[a]));
+        }
+
         // List of property names considered "key" columns
         self.keyColumnNames = configuration.keyColumnNames || ['id'];
         // List of columns that will be visible to the user
@@ -488,6 +504,36 @@
                         <div class=\"clear\"></div>\
                     </div>");
 
+    var gridTemplate = "\
+        <table class=\"activegrid-table\" width=\"100%\">\
+            <thead>\
+                <tr class=\"activegrid-header-row\">\
+                {{for visibleColumns()}}\
+                    <th class=\"activegrid-header-cell\" data-bind=\"click: function(data, event) { alert('test'); }\">\
+                        <div class=\"activegrid-header-value\">{{:headerCaption}}</div>\
+                    </th>\
+                {{/for}}\
+                </tr>\
+            </thead>\
+            <tbody>\
+            {{for itemsOnCurrentPage()}}\
+                {{if #index % 2 == 1}}\
+                <tr class=\"activegrid-data-row-odd\">\
+                {{else}}\
+                <tr class=\"activegrid-data-row-even\">\
+                {{/if}}\
+                {{for #parent.parent.data.visibleColumns() ~row=#data}}\
+                    <td class=\"activegrid-data-cell\">\
+                        <div class=\"activegrid-cell-value\" style=\"text-align: {{:align}};\">\
+                            {{:~row.item[propertyName]()}}\
+                        </div>\
+                    </td>\
+                {{/for}}\
+                </tr>\
+            {{/for}}\
+            </tbody>\
+        </table>";
+
     // Create the "activeGrid" knockout binding
     ko.bindingHandlers.activeGrid = {
         update: function (element, valueAccessor/*, allBindingsAccessor*/) {
@@ -505,12 +551,17 @@
             // Create the grid container and render the grid in it
             $(element).append('<div id="gridContainer"></div>');
             var gridContainer = $(element).children('#gridContainer');
-            ko.renderTemplate("ko_activeGrid_grid", viewModel, { templateEngine: templateEngine }, gridContainer, "replaceNode");
+            var jsrenderResult = $.templates(gridTemplate).render(viewModel);
+            gridContainer.html(jsrenderResult);
+
+            $(element).append('<div id="gridContainer2"></div>');
+            var gridContainer2 = $(element).children('#gridContainer2');
+            ko.renderTemplate("ko_activeGrid_grid", viewModel, { templateEngine: templateEngine }, gridContainer2, "replaceNode");
 
             // Create the pager container and render the pager in it
             $(element).append('<div id="gridPagerContainer"></div>');
             var pageLinksContainer = $(element).children('#gridPagerContainer');
-            ko.renderTemplate("ko_activeGrid_pageLinks", viewModel, { templateEngine: templateEngine }, pageLinksContainer, "replaceNode");
+            //ko.renderTemplate("ko_activeGrid_pageLinks", viewModel, { templateEngine: templateEngine }, pageLinksContainer, "replaceNode");
         }
     };
 })();

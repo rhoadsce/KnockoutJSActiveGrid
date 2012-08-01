@@ -33,24 +33,9 @@ $(function () {
                 });
             }
         });
-        var addGenericRow = function () {
-            var item = new grid.Item();
-            item.HoldingId(0);
-            item.AccountNumber('321');
-            item.Ticker('PG');
-            item.LotId(1);
-            item.AcquisitionDate((new Date()).toFormattedDateString('mm/dd/yyyy'));
-            item.Quantity(75);
-            item.Price(64.11);
-
-            var row = new grid.Row(grid.data().length, item);
-
-            grid.data.push(row);
-        };
 
         return {
-            grid: grid,
-            addGenericRow: addGenericRow
+            grid: grid
         };
     })();
 
